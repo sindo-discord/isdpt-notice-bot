@@ -53,6 +53,20 @@ async def show(ctx):
   await ctx.send(f"Channel name : {ctx.channel.name}")
   await ctx.send(f"Channel ID : {ctx.channel.id}")
 
+# 크롤러 공지사항 알림 중지하기
+@bot.command()
+async def stop_notice(ctx):
+  # 개인 DM은 무시
+  if IsDM(ctx):
+    return
+  
+  channel = bot.get_channel(ctx.channel.id)
+  try:
+    isdpt_notice_crawler.channel.remove(channel)
+  except KeyError:
+    pass
+  await ctx.send("Done.", delete_after=3)
+
 # 채널 메시지 전부 지우기
 @bot.command()
 async def clean(ctx):
