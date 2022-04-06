@@ -2,13 +2,15 @@ import requests
 from bs4 import BeautifulSoup
 import asyncio
 import discord
+import re
 from .utils import Embeds_color
 
 class isdpt_notice_crawler:
   # 클래스 변수
   channel = set()
   crawl_time = 60*60*3 # 3시간
-  domain = "http://home.sejong.ac.kr/bbs/"
+  crawl_domain = "http://home.sejong.ac.kr/bbs/"
+  embed_domain = "http://home.sejong.ac.kr/bbs/mainNoticeView2.jsp?wslID=isdpt&leftMenuDepth=003001&bbsid=571&bbsname=공지사항&"
   
   def __init__(self, bot, channel):
     self.channel = channel
@@ -65,7 +67,7 @@ class isdpt_notice_crawler:
       prev_url = prev_a["href"]
       prev_url = prev_url.replace('¤', "&curren")
       
-      req = requests.get(isdpt_notice_crawler.domain + prev_url)
+      req = requests.get(isdpt_notice_crawler.crawl_domain + prev_url)
       html = req.text
       soup = BeautifulSoup(html, 'html.parser')
       
@@ -121,8 +123,14 @@ class isdpt_notice_crawler:
         
       await asyncio.sleep(isdpt_notice_crawler.crawl_time)
   
+  def parse_pkid(self, Url):
+    match = re.compile("pkid=(?P<pkid>\d*).*")
+    res = match.search(Url)
+    return f"pkid={res.group('pkid')}"
+  
   def SetNoticeEmbed(self, Title, Url, Color, Author, Index, Date):
-    embed=discord.Embed(title=Title, url=isdpt_notice_crawler.domain + Url, color=Color)
+    
+    embed=discord.Embed(title=Title, url=isdpt_notice_crawler.embed_domain + self.parse_pkid(Url), color=Color)
     embed.set_author(name=Author)
     embed.set_thumbnail(url="https://i.ibb.co/DtCXwHw/1.jpg")
     embed.add_field(name="번호", value=Index, inline=True)
