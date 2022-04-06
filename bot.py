@@ -22,25 +22,18 @@ async def notice(ctx):
   # 개인 DM은 무시
   if IsDM(ctx):
     return
+  
+  # 명령 메시지 삭제  
+  await ctx.message.channel.purge(limit=1)
+        
   # 크롤링 후 Embed로 올릴 채널정보..
   # 만약 공지할 채널이 많다면 DB나 csv에 저장해두고 한번에 읽어야하나
   channel = bot.get_channel(ctx.channel.id)
-
-  # 명령 메시지 삭제  
-  await ctx.message.channel.purge(limit=1)
-  
-  try:
-    # history
-    # https://discordpy.readthedocs.io/en/stable/api.html#discord.abc.Messageable.history
-    latest_message = await channel.history(limit=1).flatten()
-  except IndexError:
-    latest_message = ""
   
   # 해당 명령을 친 채널 -> 공지사항을 받을 위치
   # 그런데 해당 채널이 이미 클래스 변수에 있다면 무시
   if not channel in isdpt_notice_crawler.channel:
     crawler = isdpt_notice_crawler(bot=bot, channel=channel)
-    await crawler.check_notice(latest_message)
     await crawler.run()
   
 # 채널 확인하는 명령어
@@ -60,12 +53,15 @@ async def stop_notice(ctx):
   if IsDM(ctx):
     return
   
+  # 명령 메시지 삭제  
+  await ctx.message.channel.purge(limit=1)
+  
   channel = bot.get_channel(ctx.channel.id)
   try:
     isdpt_notice_crawler.channel.remove(channel)
   except KeyError:
     pass
-  await ctx.send("Done.", delete_after=3)
+  await ctx.send("공지를 받지 않습니다.", delete_after=3)
 
 # 채널 메시지 전부 지우기
 @bot.command()
@@ -74,6 +70,48 @@ async def clean(ctx):
   if IsDM(ctx):
     return
   await ctx.channel.purge()
+
+# 채널 확인
+@bot.command()
+async def check_channel(ctx):
+  if IsDM(ctx):
+    return
+
+  await ctx.channel.send(isdpt_notice_crawler.channel)
+  
+# 과거 공지 업로드 테스트
+# 추후 삭제
+@bot.command()
+async def past_notice(ctx):
+  if IsDM(ctx):
+    return
+  
+  data = {
+    "currentPage": 2,
+    "wslID": "isdpt",
+    "bbsid": 571,
+    "searchField": "",
+    "searchValue": ""
+  }
+
+  req = requests.post('http://home.sejong.ac.kr/bbs/bbslist.do', data=data)
+  html = req.text
+  soup = BeautifulSoup(html, 'html.parser')
+
+  tables = soup.find('table', {'class': 'text-board'})
+  trs = tables.find_all('tr')
+  tds = trs[1].find_all('td')
+  
+  Index = tds[0].text.strip()
+  Title = tds[1].text.strip()
+  
+  Url = tds[1].find('a')["href"]
+  Url = Url.replace('¤', "&curren")
+  
+  Author = tds[2].text.strip()
+  Date = tds[3].text.strip()
+  
+  await ctx.send(embed=isdpt_notice_crawler.SetNoticeEmbed(isdpt_notice_crawler, Title=Title, Url=Url, Color=Embeds_color.Notice, Author=Author, Index=Index, Date=Date))
 
 if __name__ == '__main__':
   try:
