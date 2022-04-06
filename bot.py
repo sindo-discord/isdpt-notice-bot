@@ -36,16 +36,6 @@ async def notice(ctx):
     crawler = isdpt_notice_crawler(bot=bot, channel=channel)
     await crawler.run()
   
-# 채널 확인하는 명령어
-@bot.command()
-async def show(ctx):
-  # 개인 DM은 무시
-  if IsDM(ctx):
-    return
-  
-  await ctx.send(f"Channel name : {ctx.channel.name}")
-  await ctx.send(f"Channel ID : {ctx.channel.id}")
-
 # 크롤러 공지사항 알림 중지하기
 @bot.command()
 async def stop_notice(ctx):
@@ -62,56 +52,6 @@ async def stop_notice(ctx):
   except KeyError:
     pass
   await ctx.send("공지를 받지 않습니다.", delete_after=3)
-
-# 채널 메시지 전부 지우기
-@bot.command()
-async def clean(ctx):
-  # 개인 DM은 무시
-  if IsDM(ctx):
-    return
-  await ctx.channel.purge()
-
-# 채널 확인
-@bot.command()
-async def check_channel(ctx):
-  if IsDM(ctx):
-    return
-
-  await ctx.channel.send(isdpt_notice_crawler.channel)
-  
-# 과거 공지 업로드 테스트
-# 추후 삭제
-@bot.command()
-async def past_notice(ctx):
-  if IsDM(ctx):
-    return
-  
-  data = {
-    "currentPage": 2,
-    "wslID": "isdpt",
-    "bbsid": 571,
-    "searchField": "",
-    "searchValue": ""
-  }
-
-  req = requests.post('http://home.sejong.ac.kr/bbs/bbslist.do', data=data)
-  html = req.text
-  soup = BeautifulSoup(html, 'html.parser')
-
-  tables = soup.find('table', {'class': 'text-board'})
-  trs = tables.find_all('tr')
-  tds = trs[1].find_all('td')
-  
-  Index = tds[0].text.strip()
-  Title = tds[1].text.strip()
-  
-  Url = tds[1].find('a')["href"]
-  Url = Url.replace('¤', "&curren")
-  
-  Author = tds[2].text.strip()
-  Date = tds[3].text.strip()
-  
-  await ctx.send(embed=isdpt_notice_crawler.SetNoticeEmbed(isdpt_notice_crawler, Title=Title, Url=Url, Color=Embeds_color.Notice, Author=Author, Index=Index, Date=Date))
 
 if __name__ == '__main__':
   try:
