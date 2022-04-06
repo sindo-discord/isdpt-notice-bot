@@ -9,7 +9,7 @@ class isdpt_notice_crawler:
   # 클래스 변수
   channel = set()
   crawl_time = 60*60*3 # 3시간
-  crawl_domain = "http://home.sejong.ac.kr/bbs/"
+  crawl_domain = "http://home.sejong.ac.kr/bbs/bbsview.do?bbsid=571&wslID=isdpt&searchField=&searchValue=&currentPage=1&"
   embed_domain = "http://home.sejong.ac.kr/bbs/mainNoticeView2.jsp?wslID=isdpt&leftMenuDepth=003001&bbsid=571&bbsname=공지사항&"
   
   def __init__(self, bot, channel):
@@ -20,7 +20,7 @@ class isdpt_notice_crawler:
   
   # 밀린 공지를 확인하는 함수
   async def check_notice(self, latest_message):
-    # 마지막 공지가 없었다면 가장 최근 글을 가져와서 반환함
+    # 디스코드 채널에 마지막 공지가 없었다면 그냥 가장 최근 글을 가져와서 반환함
     if len(latest_message) == 0:
       self.latest_post_title = ""
       embed = self.crawl()
@@ -46,7 +46,10 @@ class isdpt_notice_crawler:
     
     # 이제 밀린 공지를 출력해야 한다..
     # 채팅에 남은 마지막 공지를 가져와서 이전글이 있는지 확인한다..
-    req = requests.get(latest_message[0].embeds[0].url)
+    
+    url = latest_message[0].embeds[0].url
+    pkid = self.parse_pkid(url)    
+    req = requests.get(isdpt_notice_crawler.crawl_domain + pkid)
     html = req.text
     soup = BeautifulSoup(html, 'html.parser')
 
@@ -67,7 +70,7 @@ class isdpt_notice_crawler:
       prev_url = prev_a["href"]
       prev_url = prev_url.replace('¤', "&curren")
       
-      req = requests.get(isdpt_notice_crawler.crawl_domain + prev_url)
+      req = requests.get(isdpt_notice_crawler.crawl_domain + self.parse_pkid(prev_url))
       html = req.text
       soup = BeautifulSoup(html, 'html.parser')
       
@@ -83,7 +86,7 @@ class isdpt_notice_crawler:
       Author = tds[0].text.strip()
       Index += 1
       Date = tds[1].text.strip()
-      embed = self.SetNoticeEmbed(Title=Title, Url=Url, Color=Color, Author=Author, Index=Index, Date=Date)
+      embed = self.set_notice_embed(Title=Title, Url=Url, Color=Color, Author=Author, Index=Index, Date=Date)
       await self.channel.send("새 공지사항이 올라왔습니다.", embed=embed)
       
       # 가장 최근에 올린 공지사항 이름을 저장
@@ -128,8 +131,7 @@ class isdpt_notice_crawler:
     res = match.search(Url)
     return f"pkid={res.group('pkid')}"
   
-  def SetNoticeEmbed(self, Title, Url, Color, Author, Index, Date):
-    
+  def set_notice_embed(self, Title, Url, Color, Author, Index, Date):
     embed=discord.Embed(title=Title, url=isdpt_notice_crawler.embed_domain + self.parse_pkid(Url), color=Color)
     embed.set_author(name=Author)
     embed.set_thumbnail(url="https://i.ibb.co/DtCXwHw/1.jpg")
@@ -164,9 +166,8 @@ class isdpt_notice_crawler:
     # 일단은 강제로 replace 해줌
     Url = tds[1].find('a')["href"]
     Url = Url.replace('¤', "&curren")
-    
     Author = tds[2].text.strip()
     Date = tds[3].text.strip()
   
     # 디스코드 embed 생성 후 반환
-    return self.SetNoticeEmbed(Title=Title, Url=Url, Color=Embeds_color.Notice, Author=Author, Index=Index, Date=Date)
+    return self.set_notice_embed(Title=Title, Url=Url, Color=Embeds_color.Notice, Author=Author, Index=Index, Date=Date)
