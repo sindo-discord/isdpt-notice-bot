@@ -9,7 +9,7 @@ from .utils import Embeds_color
 class isdpt_notice_crawler:
   # 클래스 변수
   channel = set()
-  crawl_time = 60*60*3 # 3시간
+  crawl_time = 30 # 3시간
   crawl_domain = "http://home.sejong.ac.kr/bbs/bbsview.do?bbsid=571&wslID=isdpt&searchField=&searchValue=&currentPage=1&"
   embed_domain = "http://home.sejong.ac.kr/bbs/mainNoticeView2.jsp?wslID=isdpt&leftMenuDepth=003001&bbsid=571&bbsname=공지사항&"
   
@@ -121,9 +121,7 @@ class isdpt_notice_crawler:
           latest_message = await channel.history(limit=1).flatten()
           print(f"Try to send notice to [{channel_iter}]")
           await self.check_notice(latest_message=latest_message)
-        except IndexError:
-          latest_message = ""
-        except discord.errors.NotFound:
+        except:
           # 채널이 삭제된 경우 클래스 변수에서 삭제
           deleted_channel.append(channel)
         
