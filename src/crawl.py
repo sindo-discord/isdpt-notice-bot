@@ -9,7 +9,7 @@ from .utils import Embeds_color
 class isdpt_notice_crawler:
   # 클래스 변수
   channel = set()
-  crawl_time = 30 # 3시간
+  crawl_time = 60*60*3 # 3시간
   crawl_domain = "http://home.sejong.ac.kr/bbs/bbsview.do?bbsid=571&wslID=isdpt&searchField=&searchValue=&currentPage=1&"
   embed_domain = "http://home.sejong.ac.kr/bbs/mainNoticeView2.jsp?wslID=isdpt&leftMenuDepth=003001&bbsid=571&bbsname=공지사항&"
   
@@ -130,7 +130,7 @@ class isdpt_notice_crawler:
       for channel in deleted_channel:
         isdpt_notice_crawler.channel.remove(channel)
         print(f"{channel} 채널을 삭제합니다")
-        
+
       await asyncio.sleep(isdpt_notice_crawler.crawl_time)
   
   def parse_pkid(self, Url):
