@@ -18,48 +18,40 @@ async def on_ready():
   await bot.change_presence(status=discord.Status.online, activity=Game)
 
 @bot.command()
-async def notice(ctx):
+async def announcement(ctx):
   # 개인 DM은 무시
   if IsDM(ctx):
     return
+  
+  # 명령 메시지 삭제  
+  await ctx.message.channel.purge(limit=1)
+        
   # 크롤링 후 Embed로 올릴 채널정보..
   # 만약 공지할 채널이 많다면 DB나 csv에 저장해두고 한번에 읽어야하나
   channel = bot.get_channel(ctx.channel.id)
-
-  # 명령 메시지 삭제  
-  await ctx.message.channel.purge(limit=1)
-  
-  try:
-    # history
-    # https://discordpy.readthedocs.io/en/stable/api.html#discord.abc.Messageable.history
-    latest_message = await channel.history(limit=1).flatten()
-  except IndexError:
-    latest_message = ""
   
   # 해당 명령을 친 채널 -> 공지사항을 받을 위치
   # 그런데 해당 채널이 이미 클래스 변수에 있다면 무시
   if not channel in isdpt_notice_crawler.channel:
     crawler = isdpt_notice_crawler(bot=bot, channel=channel)
-    await crawler.check_notice(latest_message)
     await crawler.run()
   
-# 채널 확인하는 명령어
+# 크롤러 공지사항 알림 중지하기
 @bot.command()
-async def show(ctx):
+async def stop_announcement(ctx):
   # 개인 DM은 무시
   if IsDM(ctx):
     return
   
-  await ctx.send(f"Channel name : {ctx.channel.name}")
-  await ctx.send(f"Channel ID : {ctx.channel.id}")
-
-# 채널 메시지 전부 지우기
-@bot.command()
-async def clean(ctx):
-  # 개인 DM은 무시
-  if IsDM(ctx):
-    return
-  await ctx.channel.purge()
+  # 명령 메시지 삭제  
+  await ctx.message.channel.purge(limit=1)
+  
+  channel = bot.get_channel(ctx.channel.id)
+  try:
+    isdpt_notice_crawler.channel.remove(channel)
+  except KeyError:
+    pass
+  await ctx.send("공지를 받지 않습니다.", delete_after=3)
 
 if __name__ == '__main__':
   try:

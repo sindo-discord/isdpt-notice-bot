@@ -1,14 +1,17 @@
+from dis import disco
 import requests
 from bs4 import BeautifulSoup
 import asyncio
 import discord
+import re
 from .utils import Embeds_color
 
 class isdpt_notice_crawler:
   # 클래스 변수
   channel = set()
   crawl_time = 60*60*3 # 3시간
-  domain = "http://home.sejong.ac.kr/bbs/"
+  crawl_domain = "http://home.sejong.ac.kr/bbs/bbsview.do?bbsid=571&wslID=isdpt&searchField=&searchValue=&currentPage=1&"
+  embed_domain = "http://home.sejong.ac.kr/bbs/mainNoticeView2.jsp?wslID=isdpt&leftMenuDepth=003001&bbsid=571&bbsname=공지사항&"
   
   def __init__(self, bot, channel):
     self.channel = channel
@@ -18,17 +21,36 @@ class isdpt_notice_crawler:
   
   # 밀린 공지를 확인하는 함수
   async def check_notice(self, latest_message):
-    # 마지막 공지가 없었다면 아무것도 하지 않음
+    # 디스코드 채널에 마지막 공지가 없었다면 그냥 가장 최근 글을 가져와서 반환함
     if len(latest_message) == 0:
       self.latest_post_title = ""
+      embed = self.crawl()
+      
+      # 크롤링한 데이터와 봇이 가장 최근에 전송한 공지사항의 제목이 다르면 
+      # 공지사항이 올라왔다고 가정하고 임베드 전송
+      print(embed.title)
+      print(self.latest_post_title)
+      if embed.title != self.latest_post_title:
+        await self.channel.send("새 공지사항이 올라왔습니다.", embed=embed)
+        self.latest_post_title = embed.title
+      else:
+        print("가장 최신글을 가져왔습니다")
+
       return
     
     # 우선 마지막 올린 메시지의 번호를 가져온다.. ( embed에 넣어야 해서..)
-    Index = int(latest_message[0].embeds[0].fields[0].value)
+    try:
+      Index = int(latest_message[0].embeds[0].fields[0].value)
+    except:
+      await self.channel.send("오류가 발생했습니다", delete_after=3)
+      return
     
     # 이제 밀린 공지를 출력해야 한다..
     # 채팅에 남은 마지막 공지를 가져와서 이전글이 있는지 확인한다..
-    req = requests.get(latest_message[0].embeds[0].url)
+    
+    url = latest_message[0].embeds[0].url
+    pkid = self.parse_pkid(url)    
+    req = requests.get(isdpt_notice_crawler.crawl_domain + pkid)
     html = req.text
     soup = BeautifulSoup(html, 'html.parser')
 
@@ -49,7 +71,7 @@ class isdpt_notice_crawler:
       prev_url = prev_a["href"]
       prev_url = prev_url.replace('¤', "&curren")
       
-      req = requests.get(isdpt_notice_crawler.domain + prev_url)
+      req = requests.get(isdpt_notice_crawler.crawl_domain + self.parse_pkid(prev_url))
       html = req.text
       soup = BeautifulSoup(html, 'html.parser')
       
@@ -65,7 +87,7 @@ class isdpt_notice_crawler:
       Author = tds[0].text.strip()
       Index += 1
       Date = tds[1].text.strip()
-      embed = self.SetNoticeEmbed(Title=Title, Url=Url, Color=Color, Author=Author, Index=Index, Date=Date)
+      embed = self.set_notice_embed(Title=Title, Url=Url, Color=Color, Author=Author, Index=Index, Date=Date)
       await self.channel.send("새 공지사항이 올라왔습니다.", embed=embed)
       
       # 가장 최근에 올린 공지사항 이름을 저장
@@ -83,26 +105,41 @@ class isdpt_notice_crawler:
 
   async def run(self):
     while True: 
-      # 클랙스에 등록된 모든 채널에 새 공지사항을 뿌린다..
+      # 클래스에 등록된 모든 채널에 새 공지사항을 뿌린다..
+      
+      deleted_channel = []
       for channel_iter in isdpt_notice_crawler.channel:
-        print(f"send notice to [{channel_iter}]")
-        embed = self.crawl()
         
-        # 크롤링한 데이터와 봇이 가장 최근에 전송한 공지사항의 제목이 다르면 
-        # 공지사항이 올라왔다고 가정하고 임베드 전송
-        print(embed.title)
-        print(self.latest_post_title)
-        if embed.title != self.latest_post_title:
-          await channel_iter.send("새 공지사항이 올라왔습니다.", embed=embed)
-          self.latest_post_title = embed.title
-        else:
-          print("가장 최신글을 가져왔습니다")
+        # 채널 상황마다 공지된 메시지가 다를 수 있으므로..
+        # 최근 메시지를 불러와서 check_notice 호출
+        channel = channel_iter
+        
+        # 최근 공지사항 가져오기
+        try:
+          # history
+          # https://discordpy.readthedocs.io/en/stable/api.html#discord.abc.Messageable.history
+          latest_message = await channel.history(limit=1).flatten()
+          print(f"Try to send notice to [{channel_iter}]")
+          await self.check_notice(latest_message=latest_message)
+        except:
+          # 채널이 삭제된 경우 클래스 변수에서 삭제
+          deleted_channel.append(channel)
+        
         # await i.send(f"<t:{int(datetime.datetime.now().timestamp())}:D>")
-        
+      
+      for channel in deleted_channel:
+        isdpt_notice_crawler.channel.remove(channel)
+        print(f"{channel} 채널을 삭제합니다")
+
       await asyncio.sleep(isdpt_notice_crawler.crawl_time)
   
-  def SetNoticeEmbed(self, Title, Url, Color, Author, Index, Date):
-    embed=discord.Embed(title=Title, url=isdpt_notice_crawler.domain + Url, color=Color)
+  def parse_pkid(self, Url):
+    match = re.compile("pkid=(?P<pkid>\d*).*")
+    res = match.search(Url)
+    return f"pkid={res.group('pkid')}"
+  
+  def set_notice_embed(self, Title, Url, Color, Author, Index, Date):
+    embed=discord.Embed(title=Title, url=isdpt_notice_crawler.embed_domain + self.parse_pkid(Url), color=Color)
     embed.set_author(name=Author)
     embed.set_thumbnail(url="https://i.ibb.co/DtCXwHw/1.jpg")
     embed.add_field(name="번호", value=Index, inline=True)
@@ -136,9 +173,8 @@ class isdpt_notice_crawler:
     # 일단은 강제로 replace 해줌
     Url = tds[1].find('a')["href"]
     Url = Url.replace('¤', "&curren")
-    
     Author = tds[2].text.strip()
     Date = tds[3].text.strip()
   
     # 디스코드 embed 생성 후 반환
-    return self.SetNoticeEmbed(Title=Title, Url=Url, Color=Embeds_color.Notice, Author=Author, Index=Index, Date=Date)
+    return self.set_notice_embed(Title=Title, Url=Url, Color=Embeds_color.Notice, Author=Author, Index=Index, Date=Date)
