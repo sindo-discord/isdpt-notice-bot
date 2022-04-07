@@ -1,3 +1,4 @@
+from dis import disco
 import requests
 from bs4 import BeautifulSoup
 import asyncio
@@ -105,6 +106,8 @@ class isdpt_notice_crawler:
   async def run(self):
     while True: 
       # 클래스에 등록된 모든 채널에 새 공지사항을 뿌린다..
+      
+      deleted_channel = []
       for channel_iter in isdpt_notice_crawler.channel:
         
         # 채널 상황마다 공지된 메시지가 다를 수 있으므로..
@@ -116,13 +119,19 @@ class isdpt_notice_crawler:
           # history
           # https://discordpy.readthedocs.io/en/stable/api.html#discord.abc.Messageable.history
           latest_message = await channel.history(limit=1).flatten()
+          print(f"Try to send notice to [{channel_iter}]")
+          await self.check_notice(latest_message=latest_message)
         except IndexError:
           latest_message = ""
-        
-        print(f"Try to send notice to [{channel_iter}]")
-        await self.check_notice(latest_message=latest_message)
+        except discord.errors.NotFound:
+          # 채널이 삭제된 경우 클래스 변수에서 삭제
+          deleted_channel.append(channel)
         
         # await i.send(f"<t:{int(datetime.datetime.now().timestamp())}:D>")
+      
+      for channel in deleted_channel:
+        isdpt_notice_crawler.channel.remove(channel)
+        print(f"{channel} 채널을 삭제합니다")
         
       await asyncio.sleep(isdpt_notice_crawler.crawl_time)
   
