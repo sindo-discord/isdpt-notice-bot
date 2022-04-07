@@ -1,4 +1,3 @@
-from dis import disco
 import requests
 from bs4 import BeautifulSoup
 import asyncio
@@ -122,7 +121,8 @@ class isdpt_notice_crawler:
           print(f"Try to send notice to [{channel_iter}]")
           await self.check_notice(latest_message=latest_message)
         except:
-          # 채널이 삭제된 경우 클래스 변수에서 삭제
+          # 채널에 메시지 전송 중 오류가 발생했을 때
+          # 클래스 변수에서 채널 삭제
           deleted_channel.append(channel)
         
         # await i.send(f"<t:{int(datetime.datetime.now().timestamp())}:D>")
