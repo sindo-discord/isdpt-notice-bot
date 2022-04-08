@@ -1,4 +1,3 @@
-from dis import disco
 import requests
 from bs4 import BeautifulSoup
 import asyncio
@@ -23,19 +22,8 @@ class isdpt_notice_crawler:
   async def check_notice(self, latest_message):
     # 디스코드 채널에 마지막 공지가 없었다면 그냥 가장 최근 글을 가져와서 반환함
     if len(latest_message) == 0:
-      self.latest_post_title = ""
-      embed = self.crawl()
-      
-      # 크롤링한 데이터와 봇이 가장 최근에 전송한 공지사항의 제목이 다르면 
-      # 공지사항이 올라왔다고 가정하고 임베드 전송
-      print(embed.title)
-      print(self.latest_post_title)
-      if embed.title != self.latest_post_title:
-        await self.channel.send("새 공지사항이 올라왔습니다.", embed=embed)
-        self.latest_post_title = embed.title
-      else:
-        print("가장 최신글을 가져왔습니다")
-
+      embed = self.crawl()      
+      await self.channel.send("새 공지사항이 올라왔습니다.", embed=embed)
       return
     
     # 우선 마지막 올린 메시지의 번호를 가져온다.. ( embed에 넣어야 해서..)
@@ -60,8 +48,6 @@ class isdpt_notice_crawler:
     
     prev_content = tds[0]
     
-    # 가장 최근에 올린 공지사항 이름을 저장
-    self.latest_post_title = prev_content.text.strip()
     prev_title = prev_content.text.strip()
     prev_a = prev_content.find('a')
     
@@ -122,7 +108,8 @@ class isdpt_notice_crawler:
           print(f"Try to send notice to [{channel_iter}]")
           await self.check_notice(latest_message=latest_message)
         except:
-          # 채널이 삭제된 경우 클래스 변수에서 삭제
+          # 채널에 메시지 전송 중 오류가 발생했을 때
+          # 클래스 변수에서 채널 삭제
           deleted_channel.append(channel)
         
         # await i.send(f"<t:{int(datetime.datetime.now().timestamp())}:D>")
@@ -178,3 +165,133 @@ class isdpt_notice_crawler:
   
     # 디스코드 embed 생성 후 반환
     return self.set_notice_embed(Title=Title, Url=Url, Color=Embeds_color.Notice, Author=Author, Index=Index, Date=Date)
+
+class isdpt_jop_opening_crawler:
+  channel = set()
+  crawl_time = 60*60*3
+  crawl_domain = "http://home.sejong.ac.kr/bbs/bbsview.do?bbsid=575&wslID=isdpt&searchField=&searchValue=&currentPage=1&"
+  embed_domain = "http://home.sejong.ac.kr/bbs/mainNoticeView2.jsp?wslID=isdpt&leftMenuDepth=003002&bbsid=575&bbsname=자유게시판&"
+  
+  def __init__(self, bot, channel):
+    self.channel = channel
+    self.bot = bot
+    isdpt_jop_opening_crawler.channel.add(channel)
+  
+  async def check_jop_opening(self, latest_message):
+    if len(latest_message) == 0:
+      embed = self.crawl()      
+      await self.channel.send("새 취업정보가 올라왔습니다.", embed=embed)
+      return
+    
+    try:
+      Index = int(latest_message[0].embeds[0].fields[0].value)
+    except:
+      await self.channel.send("오류가 발생했습니다", delete_after=3)
+      return
+    
+    url = latest_message[0].embeds[0].url
+    pkid = self.parse_pkid(url)    
+    req = requests.get(isdpt_jop_opening_crawler.crawl_domain + pkid)
+    html = req.text
+    soup = BeautifulSoup(html, 'html.parser')
+
+    tables = soup.find('table', {'class': 'text-list-board'})
+    trs = tables.find_all('tr')
+    tds = trs[0].find_all('td')
+    
+    prev_content = tds[0]
+    
+    prev_title = prev_content.text.strip()
+    prev_a = prev_content.find('a')
+    
+    while prev_a:
+      
+      prev_url = prev_a["href"]
+      prev_url = prev_url.replace('¤', "&curren")
+      
+      req = requests.get(isdpt_jop_opening_crawler.crawl_domain + self.parse_pkid(prev_url))
+      html = req.text
+      soup = BeautifulSoup(html, 'html.parser')
+      
+      tables = soup.find('table', {'class': 'text-view-board'})
+      trs = tables.find_all('tr')
+      tds = trs[1].find_all('td')
+      
+      Title = prev_title
+      Url = prev_url
+      Color = Embeds_color.JobOpening
+      Author = tds[0].text.strip()
+      Index += 1
+      Date = tds[1].text.strip()
+      embed = self.set_notice_embed(Title=Title, Url=Url, Color=Color, Author=Author, Index=Index, Date=Date)
+      await self.channel.send("새 취업정보가 올라왔습니다.", embed=embed)
+      
+      self.latest_post_title = Title
+      
+      tables = soup.find('table', {'class': 'text-list-board'})
+      trs = tables.find_all('tr')
+      tds = trs[0].find_all('td')
+      
+      prev_content = tds[0]
+      
+      prev_title = prev_content.text.strip()
+      prev_a = prev_content.find('a')
+
+  async def run(self):
+    while True: 
+      deleted_channel = []
+      for channel_iter in isdpt_jop_opening_crawler.channel:
+        channel = channel_iter
+        
+        try:
+          latest_message = await channel.history(limit=1).flatten()
+          print(f"Try to send jop opening to [{channel_iter}]")
+          await self.check_jop_opening(latest_message=latest_message)
+        except:
+          deleted_channel.append(channel)
+        
+      for channel in deleted_channel:
+        isdpt_jop_opening_crawler.channel.remove(channel)
+        print(f"{channel} 채널을 삭제합니다")
+
+      await asyncio.sleep(isdpt_jop_opening_crawler.crawl_time)
+  
+  def parse_pkid(self, Url):
+    match = re.compile("pkid=(?P<pkid>\d*).*")
+    res = match.search(Url)
+    return f"pkid={res.group('pkid')}"
+  
+  def set_notice_embed(self, Title, Url, Color, Author, Index, Date):
+    embed=discord.Embed(title=Title, url=isdpt_jop_opening_crawler.embed_domain + self.parse_pkid(Url), color=Color)
+    embed.set_author(name=Author)
+    embed.set_thumbnail(url="https://i.ibb.co/DtCXwHw/1.jpg")
+    embed.add_field(name="번호", value=Index, inline=True)
+    embed.add_field(name="작성일", value=Date, inline=True)
+    return embed
+  
+  def crawl(self):
+    data = {
+      "currentPage": 1,
+      "wslID": "isdpt",
+      "bbsid": 575,
+      "searchField": "",
+      "searchValue": ""
+    }
+
+    req = requests.post('http://home.sejong.ac.kr/bbs/bbslist.do', data=data)
+    html = req.text
+    soup = BeautifulSoup(html, 'html.parser')
+
+    tables = soup.find('table', {'class': 'text-board'})
+    trs = tables.find_all('tr')
+    tds = trs[1].find_all('td')
+    
+    Index = tds[0].text.strip()
+    Title = tds[1].text.strip()
+    
+    Url = tds[1].find('a')["href"]
+    Url = Url.replace('¤', "&curren")
+    Author = tds[2].text.strip()
+    Date = tds[3].text.strip()
+  
+    return self.set_notice_embed(Title=Title, Url=Url, Color=Embeds_color.JobOpening, Author=Author, Index=Index, Date=Date)

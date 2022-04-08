@@ -14,11 +14,11 @@ async def on_ready():
   print(f"Bot name : {bot.user.name}")
   print(f"Bot ID : {bot.user.id}")
 
-  Game = discord.Game("게시글 감지 중")
+  Game = discord.Game("게시글 감지")
   await bot.change_presence(status=discord.Status.online, activity=Game)
 
 @bot.command()
-async def announcement(ctx):
+async def notice(ctx):
   # 개인 DM은 무시
   if IsDM(ctx):
     return
@@ -38,7 +38,7 @@ async def announcement(ctx):
   
 # 크롤러 공지사항 알림 중지하기
 @bot.command()
-async def stop_announcement(ctx):
+async def stop_notice(ctx):
   # 개인 DM은 무시
   if IsDM(ctx):
     return
@@ -52,6 +52,31 @@ async def stop_announcement(ctx):
   except KeyError:
     pass
   await ctx.send("공지를 받지 않습니다.", delete_after=3)
+
+@bot.command()
+async def jop_opening(ctx):
+  if IsDM(ctx):
+    return
+  
+  await ctx.message.channel.purge(limit=1)
+  channel = bot.get_channel(ctx.channel.id)
+  
+  if not channel in isdpt_jop_opening_crawler.channel:
+    crawler = isdpt_jop_opening_crawler(bot=bot, channel=channel)
+    await crawler.run()
+
+@bot.command()
+async def stop_jop_opening(ctx):
+  if IsDM(ctx):
+    return
+  
+  await ctx.message.channel.purge(limit=1)
+  channel = bot.get_channel(ctx.channel.id)
+  try:
+    isdpt_jop_opening_crawler.channel.remove(channel)
+  except KeyError:
+    pass
+  await ctx.send("취업정보를 받지 않습니다.", delete_after=3)
 
 if __name__ == '__main__':
   try:
