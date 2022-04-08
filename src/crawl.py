@@ -167,27 +167,22 @@ class isdpt_notice_crawler:
     return self.set_notice_embed(Title=Title, Url=Url, Color=Embeds_color.Notice, Author=Author, Index=Index, Date=Date)
 
 class isdpt_jop_opening_crawler:
-  # 클래스 변수
   channel = set()
-  crawl_time = 60*60*3 # 3시간
+  crawl_time = 60*60*3
   crawl_domain = "http://home.sejong.ac.kr/bbs/bbsview.do?bbsid=575&wslID=isdpt&searchField=&searchValue=&currentPage=1&"
   embed_domain = "http://home.sejong.ac.kr/bbs/mainNoticeView2.jsp?wslID=isdpt&leftMenuDepth=003002&bbsid=575&bbsname=자유게시판&"
   
   def __init__(self, bot, channel):
     self.channel = channel
     self.bot = bot
-    # 공지를 뿌릴 클래스 변수에 채널 추가..
     isdpt_jop_opening_crawler.channel.add(channel)
   
-  # 밀린 공지를 확인하는 함수
   async def check_jop_opening(self, latest_message):
-    # 디스코드 채널에 마지막 공지가 없었다면 그냥 가장 최근 글을 가져와서 반환함
     if len(latest_message) == 0:
       embed = self.crawl()      
       await self.channel.send("새 취업정보가 올라왔습니다.", embed=embed)
       return
     
-    # 우선 마지막 올린 메시지의 번호를 가져온다.. ( embed에 넣어야 해서..)
     try:
       Index = int(latest_message[0].embeds[0].fields[0].value)
     except:
@@ -209,7 +204,6 @@ class isdpt_jop_opening_crawler:
     prev_title = prev_content.text.strip()
     prev_a = prev_content.find('a')
     
-    # prev_a가 있다면 이전(최신)글 링크가 있다는 것
     while prev_a:
       
       prev_url = prev_a["href"]
@@ -219,12 +213,10 @@ class isdpt_jop_opening_crawler:
       html = req.text
       soup = BeautifulSoup(html, 'html.parser')
       
-      # 현재 글 정보
       tables = soup.find('table', {'class': 'text-view-board'})
       trs = tables.find_all('tr')
       tds = trs[1].find_all('td')
       
-      # 임베드 생성해서 채널에 전송
       Title = prev_title
       Url = prev_url
       Color = Embeds_color.JobOpening
@@ -234,10 +226,8 @@ class isdpt_jop_opening_crawler:
       embed = self.set_notice_embed(Title=Title, Url=Url, Color=Color, Author=Author, Index=Index, Date=Date)
       await self.channel.send("새 취업정보가 올라왔습니다.", embed=embed)
       
-      # 가장 최근에 올린 공지사항 이름을 저장
       self.latest_post_title = Title
       
-      # 이전(최신) 글 불러오기
       tables = soup.find('table', {'class': 'text-list-board'})
       trs = tables.find_all('tr')
       tds = trs[0].find_all('td')
@@ -254,18 +244,12 @@ class isdpt_jop_opening_crawler:
         channel = channel_iter
         
         try:
-          # history
-          # https://discordpy.readthedocs.io/en/stable/api.html#discord.abc.Messageable.history
           latest_message = await channel.history(limit=1).flatten()
           print(f"Try to send jop opening to [{channel_iter}]")
           await self.check_jop_opening(latest_message=latest_message)
         except:
-          # 채널에 메시지 전송 중 오류가 발생했을 때
-          # 클래스 변수에서 채널 삭제
           deleted_channel.append(channel)
         
-        # await i.send(f"<t:{int(datetime.datetime.now().timestamp())}:D>")
-      
       for channel in deleted_channel:
         isdpt_jop_opening_crawler.channel.remove(channel)
         print(f"{channel} 채널을 삭제합니다")
@@ -310,5 +294,4 @@ class isdpt_jop_opening_crawler:
     Author = tds[2].text.strip()
     Date = tds[3].text.strip()
   
-    # 디스코드 embed 생성 후 반환
     return self.set_notice_embed(Title=Title, Url=Url, Color=Embeds_color.JobOpening, Author=Author, Index=Index, Date=Date)
