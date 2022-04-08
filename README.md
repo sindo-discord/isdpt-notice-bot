@@ -7,10 +7,11 @@
 > http://home.sejong.ac.kr/~isdpt/
 
 ## Bot Permissions - 필수 권한
-* TEXT PERMISSIONS - Send Messages
-* TEXT PERMISSIONS - Embed Links
-* TEXT PERMISSIONS - Manage Messages
-* TEXT PERMISSIONS - Read Message History
+* 채널 보기 - View Channel
+* 메시지 보내기 - Send Messages
+* 링크 첨부 - Embed Links
+* 메시지 관리 - Manage Messages
+* 메시지 기록 보기 - Read Message History
 
 ## Installation
 1. run.sh 스크립트를 `. ./run.sh`로 실행하면서 봇의 토큰을 인자로 넣어준다. \
@@ -24,17 +25,21 @@
 우선 해당 봇은 공지사항 전용 채널, 채용공고 전용 채널을 따로 만들어야 한다.
 
 ### 공지사항
-* 해당 봇만 전송 가능한 채널이 있어야함
-  * 봇은 위에 말한 권한이 필요함
-  * 외부인은 메시지 보기만 가능하게( View channel, Read message history )
+* 봇하고 관리자만 채팅 칠 수 있는 채널 생성
+  * 봇은 위에 말한 권한 추가
+  * 외부인은 메시지 보기만 가능하게( 최소 권한 : View channel, Read message history )
   * 어드민이 채널에서 최초로 `!notice` 명령을 치면됨
 
 ### 채용공고
-* TODO
+* 봇하고 관리자만 채팅 칠 수 있는 채널 생성
+  * 봇은 위에 말한 권한 추가
+  * 외부인은 메시지 보기만 가능하게( 최소 권한 : View channel, Read message history )
+  * 어드민이 채널에서 최초로 `!jop_opening` 명령을 치면됨
+
 
 ## TODO
-* 다른 게시판 크롤링 객체도 추가
+* ~다른 게시판 크롤링 객체도 추가~
 * ~`!notice` 에서 오류나면 채널 id가 클래스 변수에 고정되서 에러날 가능성이 있음, 클래스 변수에서 빼낼 수 있는 명령도 추가~
 * ~봇도 `run` 내부에서 메시지 보낼때 채널이 존재하는지 확인하는 루틴 추가~
-* 한번에 특정 채널 권한을 봇 전용 공간으로 만들 수 있게하는 명령어 제작( Manage Roles, Manage Channels 추가되어야 할 듯 )
+* 한번에 특정 채널 권한을 봇 전용 공간으로 만들 수 있게하는 명령어 제작( 채널에 Manage Roles, Manage Channels 추가되어야 할 듯 )
 * selenium 사용해보기( 필요하다면 추가 )
