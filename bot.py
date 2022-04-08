@@ -14,11 +14,11 @@ async def on_ready():
   print(f"Bot name : {bot.user.name}")
   print(f"Bot ID : {bot.user.id}")
 
-  Game = discord.Game("게시글 감지 중")
+  Game = discord.Game("게시글 감지")
   await bot.change_presence(status=discord.Status.online, activity=Game)
 
 @bot.command()
-async def announcement(ctx):
+async def notice(ctx):
   # 개인 DM은 무시
   if IsDM(ctx):
     return
@@ -38,7 +38,7 @@ async def announcement(ctx):
   
 # 크롤러 공지사항 알림 중지하기
 @bot.command()
-async def stop_announcement(ctx):
+async def stop_notice(ctx):
   # 개인 DM은 무시
   if IsDM(ctx):
     return

@@ -22,19 +22,8 @@ class isdpt_notice_crawler:
   async def check_notice(self, latest_message):
     # 디스코드 채널에 마지막 공지가 없었다면 그냥 가장 최근 글을 가져와서 반환함
     if len(latest_message) == 0:
-      self.latest_post_title = ""
-      embed = self.crawl()
-      
-      # 크롤링한 데이터와 봇이 가장 최근에 전송한 공지사항의 제목이 다르면 
-      # 공지사항이 올라왔다고 가정하고 임베드 전송
-      print(embed.title)
-      print(self.latest_post_title)
-      if embed.title != self.latest_post_title:
-        await self.channel.send("새 공지사항이 올라왔습니다.", embed=embed)
-        self.latest_post_title = embed.title
-      else:
-        print("가장 최신글을 가져왔습니다")
-
+      embed = self.crawl()      
+      await self.channel.send("새 공지사항이 올라왔습니다.", embed=embed)
       return
     
     # 우선 마지막 올린 메시지의 번호를 가져온다.. ( embed에 넣어야 해서..)
@@ -59,8 +48,6 @@ class isdpt_notice_crawler:
     
     prev_content = tds[0]
     
-    # 가장 최근에 올린 공지사항 이름을 저장
-    self.latest_post_title = prev_content.text.strip()
     prev_title = prev_content.text.strip()
     prev_a = prev_content.find('a')
     
