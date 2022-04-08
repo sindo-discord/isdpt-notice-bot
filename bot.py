@@ -53,6 +53,31 @@ async def stop_notice(ctx):
     pass
   await ctx.send("공지를 받지 않습니다.", delete_after=3)
 
+@bot.command()
+async def jop_opening(ctx):
+  if IsDM(ctx):
+    return
+  
+  await ctx.message.channel.purge(limit=1)
+  channel = bot.get_channel(ctx.channel.id)
+  
+  if not channel in isdpt_jop_opening_crawler.channel:
+    crawler = isdpt_jop_opening_crawler(bot=bot, channel=channel)
+    await crawler.run()
+
+@bot.command()
+async def stop_jop_opening(ctx):
+  if IsDM(ctx):
+    return
+  
+  await ctx.message.channel.purge(limit=1)
+  channel = bot.get_channel(ctx.channel.id)
+  try:
+    isdpt_jop_opening_crawler.channel.remove(channel)
+  except KeyError:
+    pass
+  await ctx.send("취업정보를 받지 않습니다.", delete_after=3)
+
 if __name__ == '__main__':
   try:
     # 로컬에서 테스트할 경우 config 내부에 토큰 저장
