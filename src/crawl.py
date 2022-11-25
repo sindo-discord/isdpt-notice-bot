@@ -166,7 +166,7 @@ class isdpt_notice_crawler:
     # 디스코드 embed 생성 후 반환
     return self.set_notice_embed(Title=Title, Url=Url, Color=Embeds_color.Notice, Author=Author, Index=Index, Date=Date)
 
-class isdpt_jop_opening_crawler:
+class isdpt_job_opening_crawler:
   channel = set()
   crawl_time = 60*60*3
   crawl_domain = "http://home.sejong.ac.kr/bbs/bbsview.do?bbsid=575&wslID=isdpt&searchField=&searchValue=&currentPage=1&"
@@ -175,9 +175,9 @@ class isdpt_jop_opening_crawler:
   def __init__(self, bot, channel):
     self.channel = channel
     self.bot = bot
-    isdpt_jop_opening_crawler.channel.add(channel)
+    isdpt_job_opening_crawler.channel.add(channel)
   
-  async def check_jop_opening(self, latest_message):
+  async def check_job_opening(self, latest_message):
     if len(latest_message) == 0:
       embed = self.crawl()      
       await self.channel.send("새 취업정보가 올라왔습니다.", embed=embed)
@@ -191,7 +191,7 @@ class isdpt_jop_opening_crawler:
     
     url = latest_message[0].embeds[0].url
     pkid = self.parse_pkid(url)    
-    req = requests.get(isdpt_jop_opening_crawler.crawl_domain + pkid)
+    req = requests.get(isdpt_job_opening_crawler.crawl_domain + pkid)
     html = req.text
     soup = BeautifulSoup(html, 'html.parser')
 
@@ -209,7 +209,7 @@ class isdpt_jop_opening_crawler:
       prev_url = prev_a["href"]
       prev_url = prev_url.replace('¤', "&curren")
       
-      req = requests.get(isdpt_jop_opening_crawler.crawl_domain + self.parse_pkid(prev_url))
+      req = requests.get(isdpt_job_opening_crawler.crawl_domain + self.parse_pkid(prev_url))
       html = req.text
       soup = BeautifulSoup(html, 'html.parser')
       
@@ -240,21 +240,21 @@ class isdpt_jop_opening_crawler:
   async def run(self):
     while True: 
       deleted_channel = []
-      for channel_iter in isdpt_jop_opening_crawler.channel:
+      for channel_iter in isdpt_job_opening_crawler.channel:
         channel = channel_iter
         
         try:
           latest_message = await channel.history(limit=1).flatten()
-          print(f"Try to send jop opening to [{channel_iter}]")
-          await self.check_jop_opening(latest_message=latest_message)
+          print(f"Try to send job opening to [{channel_iter}]")
+          await self.check_job_opening(latest_message=latest_message)
         except:
           deleted_channel.append(channel)
         
       for channel in deleted_channel:
-        isdpt_jop_opening_crawler.channel.remove(channel)
+        isdpt_job_opening_crawler.channel.remove(channel)
         print(f"{channel} 채널을 삭제합니다")
 
-      await asyncio.sleep(isdpt_jop_opening_crawler.crawl_time)
+      await asyncio.sleep(isdpt_job_opening_crawler.crawl_time)
   
   def parse_pkid(self, Url):
     match = re.compile("pkid=(?P<pkid>\d*).*")
@@ -262,7 +262,7 @@ class isdpt_jop_opening_crawler:
     return f"pkid={res.group('pkid')}"
   
   def set_notice_embed(self, Title, Url, Color, Author, Index, Date):
-    embed=discord.Embed(title=Title, url=isdpt_jop_opening_crawler.embed_domain + self.parse_pkid(Url), color=Color)
+    embed=discord.Embed(title=Title, url=isdpt_job_opening_crawler.embed_domain + self.parse_pkid(Url), color=Color)
     embed.set_author(name=Author)
     embed.set_thumbnail(url="https://i.ibb.co/DtCXwHw/1.jpg")
     embed.add_field(name="번호", value=Index, inline=True)
