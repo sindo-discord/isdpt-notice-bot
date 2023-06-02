@@ -34,7 +34,7 @@
 * 봇하고 관리자만 채팅 칠 수 있는 채널 생성
   * 봇은 위에 말한 권한 추가
   * 외부인은 메시지 보기만 가능하게( 최소 권한 : View channel, Read message history )
-  * 어드민이 채널에서 최초로 `!jop_opening` 명령을 치면됨
+  * 어드민이 채널에서 최초로 `!job_opening` 명령을 치면됨
 
 
 ## TODO
